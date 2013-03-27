@@ -9,7 +9,6 @@ use warnings;
 my $directory = '/opt/samba/data_comp/vol00019/20/553620';
 my $dirpath;
 my $temppathname = '/opt/samba/data_comp/vol00019/20/553620/tmp';
-my $tempname;
 my $outfilename;
 my $filename;
 my $magcookie;
@@ -41,7 +40,7 @@ opendir (DIR, $directory) or die $!;
 
 while ($filename = readdir(DIR)) {
 
-       $tempname = $filename;
+print "$filename\n";
 
 	next if ($filename =~ m/^\./);
 	&extract_files($filename);
@@ -124,12 +123,7 @@ sub extract_image_file
 	print "Number of blocks = ".$numblocks."|\n";
 	print "Length of last block = ".$partial_block_length."|\n";
 	
-	if($tempname =~ s/.000//)
-	{
-		$tempname = $tempname.".TIF";
-	}
-	
-	$outfilename = $temppathname.$tempname;
+	$outfilename = $temppathname. "/test.TIF";
 	
 	open (IMAGEFILE,">$outfilename") || die "Cannot open $outfilename: $!\n";
 	
