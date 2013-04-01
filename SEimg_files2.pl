@@ -2,16 +2,22 @@
 # 
 #  Based on doc_display.cgi from /opt/carsi/modules/common/cgi
 #
-
+#  Parameters: 
+#  ARGV[0] = directory path to read
+#  ARGV[1] = tmp directory path to write
+#
 use strict;
 use warnings;
 
 my $directory = '/opt/samba/data_comp/vol00019/20/553620';
-my $dirpath;
-my $temppathname = '/opt/samba/data_comp/vol00019/20/553620/tmp';
+my $dirpath = "";
+my $temppathname = '/home/carsids/cyoes/test/tmp';
 my $tempname;
 my $outfilename;
-my $filename;
+my $line = "";
+my $filename = "";
+my @filenames;
+my $count1;
 my $magcookie;
 my $majverno;
 my $minverno;
@@ -32,23 +38,27 @@ my $partial_block_length;
 my $partialbuff;
 my $tiffbuff;
 
-$dirpath = $ARGV[0] if (exists $ARGV[0]);
 
-#  We want to read all image documents in the directory,
-#  which have the suffix .000
+$directory = $ARGV[0] if (exists $ARGV[0]);
+$temppathname = $ARGV[1] if (exists $ARGV[1]);
 
-opendir (DIR, $directory) or die $!;
+# Initialize all counters to zero.
 
-while ($filename = readdir(DIR)) {
+$count1 = 0;
 
-       $tempname = $filename;
+#  First find all image documents (suffix .000), which have the TIFF
+#  images embedded in them.
 
-	next if ($filename =~ m/^\./);
+ @filenames = `find $directory -type f`;
+ 
+ foreach $line (@filenames)
+{
+	$count1++;
+       ($dirpath, $filename) = $line =~m/(.*\/)(.*)$/;
 	&extract_files($filename);
 }
 
-
-closedir(DIR);
+print "Nbr files read: $count1\n";
 
 exit;
 
@@ -58,11 +68,9 @@ sub extract_files
 	#  document file's internal directory at the same time that are walking down
 	#  the image locations.  
 	
-
+	open(DOCFILE, '<', $dirpath  . $filename) || die "Can't open doc1  $filename: $!\n";
+	open(DOCFILE2, '<', $dirpath  . $filename) || die "Can't open doc2 $filename: $!\n";
 		
-	open(DOCFILE, '<', $filename) || die "Can't open doc1  $filename: $!\n";
-	open(DOCFILE2, '<', $filename) || die "Can't open doc2 $filename: $!\n";
-	
 	$len = read(DOCFILE,$magcookie,8);
 	$len = read(DOCFILE,$majverno,3);
 	$len = read(DOCFILE,$minverno,3);
@@ -70,18 +78,10 @@ sub extract_files
 	$len = read(DOCFILE,$numcomp,4);
 	$len = read(DOCFILE,$vbdirpos,10);
 	
-	
-#	print "magcookie $magcookie\n";
-#	print "majverno $majverno\n";
-#	print "minverno $minverno\n";
-#	print "numpage $numpage\n";
-#	print "numcomp $numcomp\n";
-#	print "vbdirpos: $vbdirpos\n";
-	
 	$perldirpos = $vbdirpos -1;
 		
 	#    Seek to the beginning of the Document file's internal directory.
-	
+		
 	seek(DOCFILE,$perldirpos,0);
 	$imfilenames = "";       
 	
@@ -105,31 +105,18 @@ sub extract_files
 sub extract_image_file
 {       
 	# This subroutine will use the implicit parameters $imagefilename, $startpos,
-	# and $filelen to extract the selected image file from the document file.
-	
-	print "\n";
-	print "Image number = ".($i+1)."|\n";
-	print "Image name = ".$imagefilename."|\n";
-#	print "File start position = ".$vbstartpos."|\n";
-#	print "Start position = ".$perlstartpos."|\n";
-	print "File length = ".$filelen."|\n";
-	print "\n";
-	my $quotient = $filelen/512;
-	
-	
+	# and $filelen to extract the selected image file from the document file.	
+
+	my $quotient = $filelen/512;	
 	$numblocks = int($filelen/512);
-	$partial_block_length = $filelen%512;    
+	$partial_block_length = $filelen%512;    	
 	
-#	print "Quotient = ".$quotient."|\n";
-	print "Number of blocks = ".$numblocks."|\n";
-	print "Length of last block = ".$partial_block_length."|\n";
-	
-	if($tempname =~ s/.000//)
+	if($filename =~ s/.000//)
 	{
-		$tempname = $tempname.".TIF";
+		$tempname = $filename.".TIF";
 	}
 	
-	$outfilename = $temppathname.$tempname;
+	$outfilename = $temppathname . "/" .$tempname;
 	
 	open (IMAGEFILE,">$outfilename") || die "Cannot open $outfilename: $!\n";
 	
